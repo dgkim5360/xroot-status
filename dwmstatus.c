@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <linux/wireless.h>
 #include <X11/Xlib.h>
 #include <alsa/asoundlib.h>
 
@@ -9,6 +12,7 @@
 const char *status_datetime(const char *);
 int status_battery();
 int status_audio();
+const char *status_wifi_ssid(const char *);
 
 int main(int argc, char *argv[]) {
   Display *dpy = XOpenDisplay(NULL);
@@ -23,6 +27,9 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     len = 0;
+    len += snprintf(status+len, sizeof(status)-len,
+                    "\U0001F4F6%s ",
+                    status_wifi_ssid("wlp2s0"));
     len += snprintf(status+len, sizeof(status)-len,
                     "\U0001F509%d%% ",
                     status_audio());
@@ -89,4 +96,27 @@ int status_audio() {
 
   snd_hctl_close(hctl);
   return volume;
+}
+
+const char *status_wifi_ssid(const char *iface) {
+  int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+  struct iwreq wreq;
+
+  memset(&wreq, 0, sizeof(struct iwreq));
+  wreq.u.essid.length = IW_ESSID_MAX_SIZE+1;
+  snprintf(wreq.ifr_name, sizeof(wreq.ifr_name), "%s", iface);
+
+  if (sockfd == -1)
+    return NULL;
+
+  wreq.u.essid.pointer = localbuf;
+  if (ioctl(sockfd, SIOCGIWESSID, &wreq) == -1) {
+    close(sockfd);
+    return NULL;
+  }
+  close(sockfd);
+
+  if (strcmp(localbuf, "") == 0)
+    return NULL;
+  return localbuf;
 }
