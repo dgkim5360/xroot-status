@@ -13,6 +13,7 @@ const char *status_datetime(const char *);
 int status_battery();
 int status_audio();
 const char *status_wifi_ssid(const char *);
+int status_memory();
 
 int main(int argc, char *argv[]) {
   Display *dpy = XOpenDisplay(NULL);
@@ -27,6 +28,9 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     len = 0;
+    len += snprintf(status+len, sizeof(status)-len,
+                    "MEM%dMB ",
+                    status_memory());
     len += snprintf(status+len, sizeof(status)-len,
                     "\U0001F4F6%s ",
                     status_wifi_ssid("wlp2s0"));
@@ -119,4 +123,20 @@ const char *status_wifi_ssid(const char *iface) {
   if (strcmp(localbuf, "") == 0)
     return NULL;
   return localbuf;
+}
+
+int status_memory() {
+  FILE *mem_fp;
+  long mem_avail;
+  int nscan;
+
+  if (!(mem_fp = fopen("/proc/meminfo", "r")))
+    exit(1);
+  nscan = fscanf(mem_fp,
+                "MemTotal: %ld kB\n"
+                "MemFree: %ld kB\n"
+                "MemAvailable: %ld kB\n",
+                &mem_avail, &mem_avail, &mem_avail);
+  fclose(mem_fp);
+  return (nscan == 3)? mem_avail/1024 : 0;
 }
