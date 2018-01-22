@@ -10,8 +10,8 @@
 #define MAXBUF 1024
 
 const char *status_datetime(const char *);
-int status_battery();
-int status_audio();
+const char *status_battery();
+const char *status_audio();
 const char *status_wifi_ssid(const char *);
 int status_memory();
 
@@ -35,13 +35,13 @@ int main(int argc, char *argv[]) {
                     "\U0001F4F6%s ",
                     status_wifi_ssid("wlp2s0"));
     len += snprintf(status+len, sizeof(status)-len,
-                    "\U0001F509%d%% ",
+                    "%s ",
                     status_audio());
     len += snprintf(status+len, sizeof(status)-len,
-                    "\U0001F50B%d%% ",
+                    "%s ", 
                     status_battery());
     len += snprintf(status+len, sizeof(status)-len,
-                    "\U0001F558%s ",
+                    "%s ",
                     status_datetime("%T%z %a %F"));
 
     XStoreName(dpy, DefaultRootWindow(dpy), status);
@@ -54,28 +54,48 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-static char localbuf[MAXBUF];
+static char localbuf[MAXBUF/2];
+const static char *clocks[12] = {
+  "\U0001F55B%s", "\U0001F550%s", "\U0001F551%s", "\U0001F552%s",
+  "\U0001F553%s", "\U0001F554%s", "\U0001F555%s", "\U0001F556%s",
+  "\U0001F557%s", "\U0001F555%s", "\U0001F556%s", "\U0001F557%s"};
 
 const char *status_datetime(const char *fmt) {
   time_t t = time(NULL);
+  struct tm *tm_localtime = localtime(&t);
+  char strft[50];
+  int hour;
 
-  if (strftime(localbuf, sizeof(localbuf), fmt, localtime(&t)) == 0)
+  if (strftime(strft, sizeof(localbuf), fmt, tm_localtime) == 0)
     return NULL;
+  hour = tm_localtime->tm_hour%12;
+  sprintf(localbuf, clocks[hour], strft);
   return localbuf;
 }
 
-int status_battery() {
+const char *status_battery() {
   FILE *battery_fp = fopen("/sys/class/power_supply/BAT0/capacity", "r");
   if (!battery_fp)
-    exit(1);
+    return NULL;
 
   int capacity;
   fscanf(battery_fp, "%i", &capacity);
   fclose(battery_fp);
-  return capacity;
+
+  if (capacity > 80)
+    sprintf(localbuf, "\uA70D%d%%", capacity);
+  else if (capacity > 60)
+    sprintf(localbuf, "\uA70E%d%%", capacity);
+  else if (capacity > 40)
+    sprintf(localbuf, "\uA70F%d%%", capacity);
+  else if (capacity > 20)
+    sprintf(localbuf, "\uA710%d%%", capacity);
+  else
+    sprintf(localbuf, "\uA711%d%%", capacity);
+  return localbuf;
 }
 
-int status_audio() {
+const char *status_audio() {
   int volume;
   snd_hctl_t *hctl;
   snd_ctl_elem_id_t *id;
@@ -99,7 +119,11 @@ int status_audio() {
   volume = (int)snd_ctl_elem_value_get_integer(ctl, 0);
 
   snd_hctl_close(hctl);
-  return volume;
+  if (volume > 50)
+    sprintf(localbuf, "\U0001F50A%d%%", volume);
+  else
+    sprintf(localbuf, "\U0001F509%d%%", volume);
+  return localbuf;
 }
 
 const char *status_wifi_ssid(const char *iface) {
