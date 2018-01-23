@@ -3,6 +3,7 @@
 #include <time.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/statvfs.h>
 #include <linux/wireless.h>
 #include <X11/Xlib.h>
 #include <alsa/asoundlib.h>
@@ -13,7 +14,8 @@ const char *status_datetime(const char *);
 const char *status_battery();
 const char *status_audio();
 const char *status_wifi_ssid(const char *);
-int status_memory();
+const char *status_memory_available();
+const char *status_disk_available();
 
 int main(int argc, char *argv[]) {
   Display *dpy = XOpenDisplay(NULL);
@@ -29,8 +31,13 @@ int main(int argc, char *argv[]) {
   while (1) {
     len = 0;
     len += snprintf(status+len, sizeof(status)-len,
-                    "MEM%dMB ",
-                    status_memory());
+                    " ");
+    len += snprintf(status+len, sizeof(status)-len,
+                    "%s ",
+                    status_memory_available());
+    len += snprintf(status+len, sizeof(status)-len,
+                    "%s ",
+                    status_disk_available());
     len += snprintf(status+len, sizeof(status)-len,
                     "\U0001F4F6%s ",
                     status_wifi_ssid("wlp2s0"));
@@ -42,7 +49,7 @@ int main(int argc, char *argv[]) {
                     status_battery());
     len += snprintf(status+len, sizeof(status)-len,
                     "%s ",
-                    status_datetime("%T%z %a %F"));
+                    status_datetime("%R%z \U0001F4C5%a %F"));
 
     XStoreName(dpy, DefaultRootWindow(dpy), status);
     XSync(dpy, 0);
@@ -58,7 +65,7 @@ static char localbuf[MAXBUF/2];
 const static char *clocks[12] = {
   "\U0001F55B%s", "\U0001F550%s", "\U0001F551%s", "\U0001F552%s",
   "\U0001F553%s", "\U0001F554%s", "\U0001F555%s", "\U0001F556%s",
-  "\U0001F557%s", "\U0001F555%s", "\U0001F556%s", "\U0001F557%s"};
+  "\U0001F557%s", "\U0001F558%s", "\U0001F559%s", "\U0001F55A%s"};
 
 const char *status_datetime(const char *fmt) {
   time_t t = time(NULL);
@@ -149,7 +156,7 @@ const char *status_wifi_ssid(const char *iface) {
   return localbuf;
 }
 
-int status_memory() {
+const char *status_memory_available() {
   FILE *mem_fp;
   long mem_avail;
   int nscan;
@@ -162,5 +169,17 @@ int status_memory() {
                 "MemAvailable: %ld kB\n",
                 &mem_avail, &mem_avail, &mem_avail);
   fclose(mem_fp);
-  return (nscan == 3)? mem_avail/1024 : 0;
+
+  mem_avail = (nscan == 3)? mem_avail/1024 : 0;
+  sprintf(localbuf, "MEM%dMB", (int)mem_avail);
+  return localbuf;
+}
+
+const char *status_disk_available() {
+  struct statvfs fs;
+
+  if (statvfs("/", &fs) < 0)
+    return NULL;
+  sprintf(localbuf, "\U0001F4BF%ldGB", (fs.f_bsize/1024)*fs.f_bavail/1024/1024);
+  return localbuf;
 }
