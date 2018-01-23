@@ -13,6 +13,7 @@
 
 const char *status_datetime(const char *);
 const char *status_battery();
+const char *status_backlight();
 const char *status_audio();
 const char *status_wifi_ssid(const char *);
 const char *status_memory_available();
@@ -45,6 +46,9 @@ int main(int argc, char *argv[]) {
     len += snprintf(status+len, sizeof(status)-len,
                     "%s ",
                     status_audio());
+    len += snprintf(status+len, sizeof(status)-len,
+                    "%s ",
+                    status_backlight());
     len += snprintf(status+len, sizeof(status)-len,
                     "%s ", 
                     status_battery());
@@ -100,6 +104,22 @@ const char *status_battery() {
     sprintf(localbuf, "\uA710%d%%", capacity);
   else
     sprintf(localbuf, "\uA711%d%%", capacity);
+  return localbuf;
+}
+
+const char *status_backlight() {
+  FILE *max_fp = fopen("/sys/class/backlight/intel_backlight/max_brightness",
+                       "r"),
+       *now_fp = fopen("/sys/class/backlight/intel_backlight/brightness", "r");
+  int max, now, p;
+  fscanf(max_fp, "%i", &max);
+  fscanf(now_fp, "%i", &now);
+
+  p = now*100/max;
+  sprintf(localbuf, (p > 50)? "\U0001F506%d%%" : "\U0001F505%d%%", p);
+
+  fclose(max_fp);
+  fclose(now_fp);
   return localbuf;
 }
 
