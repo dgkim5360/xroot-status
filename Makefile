@@ -4,18 +4,18 @@ LDLIBS=-lX11 -lasound
 
 PREFIX=/usr/local
 
-all: dwmstatus
+all: status
 
-dwmstatus: dwmstatus.o
-dwmstatus.o: dwmstatus.c
+status: status.o
+status.o: status.c
 
 clean:
-	$(RM) dwmstatus *.o
+	$(RM) status *.o
 
 install: all
 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
-	cp -f dwmstatus "$(DESTDIR)$(PREFIX)/bin"
-	chmod 755 "$(DESTDIR)$(PREFIX)/bin/dwmstatus"
+	cp -f status "$(DESTDIR)$(PREFIX)/bin/xroot-status"
+	chmod 755 "$(DESTDIR)$(PREFIX)/bin/xroot-status"
 
 uninstall:
-	rm -f "$(DESTDIR)$(PREFIX)/bin/dwmstatus"
+	rm -f "$(DESTDIR)$(PREFIX)/bin/xroot-status"
