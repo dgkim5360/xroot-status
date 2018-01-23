@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -49,7 +50,7 @@ int main(int argc, char *argv[]) {
                     status_battery());
     len += snprintf(status+len, sizeof(status)-len,
                     "%s ",
-                    status_datetime("%R%z \U0001F4C5%a %F"));
+                    status_datetime("%R%z \U0001F4C6%a %b %d %Y"));
 
     XStoreName(dpy, DefaultRootWindow(dpy), status);
     XSync(dpy, 0);
@@ -116,6 +117,20 @@ const char *status_audio() {
   snd_ctl_elem_id_set_interface(id, SND_CTL_ELEM_IFACE_MIXER);
 
   /* amixer controls */
+  /* Check the switch is on */
+  snd_ctl_elem_id_set_name(id, "Master Playback Switch");
+  elem = snd_hctl_find_elem(hctl, id);
+
+  snd_ctl_elem_value_alloca(&ctl);
+  snd_ctl_elem_value_set_id(ctl, id);
+
+  snd_hctl_elem_read(elem, ctl);
+  if (!snd_ctl_elem_value_get_boolean(ctl, 0)) {
+    sprintf(localbuf, "\U0001F507");
+    return localbuf;
+  }
+
+  /* Check the master volume */
   snd_ctl_elem_id_set_name(id, "Master Playback Volume");
   elem = snd_hctl_find_elem(hctl, id);
 
@@ -124,6 +139,7 @@ const char *status_audio() {
 
   snd_hctl_elem_read(elem, ctl);
   volume = (int)snd_ctl_elem_value_get_integer(ctl, 0);
+
 
   snd_hctl_close(hctl);
   if (volume > 50)
