@@ -21,7 +21,7 @@ const char *status_disk_available();
 
 int main(int argc, char *argv[]) {
   Display *dpy = XOpenDisplay(NULL);
-  const struct timespec sleeptime = {1, 0L};
+  const struct timespec sleeptime = {5, 0L};
   size_t len;
   char status[MAXBUF];
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
                     "%s ",
                     status_disk_available());
     len += snprintf(status+len, sizeof(status)-len,
-                    "\U0001F4F6%s ",
+                    "%s ",
                     status_wifi_ssid("wlp2s0"));
     len += snprintf(status+len, sizeof(status)-len,
                     "%s ",
@@ -86,14 +86,21 @@ const char *status_datetime(const char *fmt) {
 }
 
 const char *status_battery() {
-  FILE *battery_fp = fopen("/sys/class/power_supply/BAT0/capacity", "r");
-  if (!battery_fp)
+  FILE *charging_fp = fopen("/sys/class/power_supply/BAT0/status", "r"),
+       *battery_fp = fopen("/sys/class/power_supply/BAT0/capacity", "r");
+  if (!charging_fp && !battery_fp)
     return NULL;
 
   int capacity;
+  char c = fgetc(charging_fp);
   fscanf(battery_fp, "%i", &capacity);
+  fclose(charging_fp);
   fclose(battery_fp);
 
+  if (c == 'C') {
+    sprintf(localbuf, "\U0001F50C%d%%", capacity);
+    return localbuf;
+  }
   if (capacity > 80)
     sprintf(localbuf, "\uA70D%d%%", capacity);
   else if (capacity > 60)
@@ -170,7 +177,7 @@ const char *status_audio() {
 }
 
 const char *status_wifi_ssid(const char *iface) {
-  int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+  int sockfd = socket(AF_INET, SOCK_DGRAM, 0), offset;
   struct iwreq wreq;
 
   memset(&wreq, 0, sizeof(struct iwreq));
@@ -178,17 +185,19 @@ const char *status_wifi_ssid(const char *iface) {
   snprintf(wreq.ifr_name, sizeof(wreq.ifr_name), "%s", iface);
 
   if (sockfd == -1)
-    return NULL;
+    return "\u26C8";
 
-  wreq.u.essid.pointer = localbuf;
+  offset = sprintf(localbuf, "\U0001F4F6");
+  wreq.u.essid.pointer = localbuf+offset;
   if (ioctl(sockfd, SIOCGIWESSID, &wreq) == -1) {
     close(sockfd);
-    return NULL;
+    localbuf[offset] = '\0';
+    return localbuf;
   }
   close(sockfd);
 
-  if (strcmp(localbuf, "") == 0)
-    return NULL;
+  if (strcmp(localbuf+offset, "") == 0)
+    sprintf(localbuf+offset, "NOT CONNECTED");
   return localbuf;
 }
 
@@ -207,7 +216,7 @@ const char *status_memory_available() {
   fclose(mem_fp);
 
   mem_avail = (nscan == 3)? mem_avail/1024 : 0;
-  sprintf(localbuf, "MEM%dMB", (int)mem_avail);
+  sprintf(localbuf, "MEM+%dMB", (int)mem_avail);
   return localbuf;
 }
 
@@ -216,6 +225,6 @@ const char *status_disk_available() {
 
   if (statvfs("/", &fs) < 0)
     return NULL;
-  sprintf(localbuf, "\U0001F4BF%ldGB", (fs.f_bsize/1024)*fs.f_bavail/1024/1024);
+  sprintf(localbuf, "\U0001F4BF+%ldGB", (fs.f_bsize/1024)*fs.f_bavail/1024/1024);
   return localbuf;
 }
