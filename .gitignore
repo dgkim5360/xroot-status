@@ -1,2 +1,4 @@
-*.o
+config.h
 *.swp
+*.o
+status

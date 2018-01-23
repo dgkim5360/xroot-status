@@ -6,8 +6,12 @@ PREFIX=/usr/local
 
 all: status
 
-status: status.o
-status.o: status.c
+status: status.o helpers.o
+status.o: status.c config.h
+helpers.o: helpers.c config.h
+
+config.h: config.def.h
+	cp $< $@
 
 clean:
 	$(RM) status *.o
