@@ -4,6 +4,7 @@
 #define MAXBUF 1024
 #define SLEEP_INTERVAL_SEC 5
 #define SLEEP_INTERVAL_NANOSEC 0L  // 1 sec == 1,000,000,000 nsec
+#define MAXVOLUME 87
 
 #define FORMAT_DATETIME "%R%z \U0001F4C6%a %b %d %Y"
 #define SYS_BATTERY_STATUS "/sys/class/power_supply/BAT0/status"

@@ -107,7 +107,7 @@ const char *status_audio() {
   snd_ctl_elem_value_set_id(ctl, id);
 
   snd_hctl_elem_read(elem, ctl);
-  volume = (int)snd_ctl_elem_value_get_integer(ctl, 0);
+  volume = (int)snd_ctl_elem_value_get_integer(ctl, 0)*100/MAXVOLUME;
 
 
   snd_hctl_close(hctl);
