@@ -16,7 +16,7 @@ information includes:
 7. Available memory (MB)
 
 Additionally it contains somewhat "responsive" unicode characters to
-represent the information.
+represent the information; the clock actually means the time! (for only the hour, honestly)
 
 
 Installation
@@ -24,12 +24,11 @@ Installation
 
 1. Clone it,
 2. Sudo make clean install
-3. Use $(DESTDIR)$(PREFIX)/bin/xroot-status for whatever you want.
-   In my case I need this program for my laptop
-   (Lenovo Ideapad 500S-14ISK) running Arch Linux + dwm.
+3. Use it!
+   In my case I need this program for my laptop running dwm.
 
 
 License
 -------
 
-Please see the COPYING file.
+Please see the ``COPYING`` file.
