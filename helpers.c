@@ -10,50 +10,26 @@
 #include "config.h"
 
 static char localbuf[MAXBUF/2];
-const static char *clocks[12] = {
-  "\U0001F55B", "\U0001F550", "\U0001F551", "\U0001F552",
-  "\U0001F553", "\U0001F554", "\U0001F555", "\U0001F556",
-  "\U0001F557", "\U0001F558", "\U0001F559", "\U0001F55A"};
 
 const char *status_datetime(const char *fmt) {
   time_t t = time(NULL);
-  size_t dtlen;
   struct tm *tm_localtime = localtime(&t);
-  int hour;
 
-  hour = tm_localtime->tm_hour%12;
-  dtlen = sprintf(localbuf, clocks[hour]);
-  strftime(localbuf+dtlen, sizeof(localbuf),
+  strftime(localbuf, sizeof(localbuf),
            FORMAT_DATETIME, tm_localtime);
   return localbuf;
 }
 
 const char *status_battery() {
-  FILE *charging_fp = fopen(SYS_BATTERY_STATUS, "r"),
-       *battery_fp = fopen(SYS_BATTERY_CAPACITY, "r");
-  if (!charging_fp && !battery_fp)
+  FILE *battery_fp = fopen(SYS_BATTERY_CAPACITY, "r");
+  if (!battery_fp)
     return NULL;
 
   int capacity;
-  char c = fgetc(charging_fp);
   fscanf(battery_fp, "%i", &capacity);
-  fclose(charging_fp);
   fclose(battery_fp);
 
-  if (c == 'C' || c == 'F') {  // Charging or Full
-    sprintf(localbuf, "\U0001F50C%d%%", capacity);
-    return localbuf;
-  }
-  if (capacity > 80)
-    sprintf(localbuf, "\uA70D%d%%", capacity);
-  else if (capacity > 60)
-    sprintf(localbuf, "\uA70E%d%%", capacity);
-  else if (capacity > 40)
-    sprintf(localbuf, "\uA70F%d%%", capacity);
-  else if (capacity > 20)
-    sprintf(localbuf, "\uA710%d%%", capacity);
-  else
-    sprintf(localbuf, "\uA711%d%%", capacity);
+  sprintf(localbuf, "BAT%d%%", capacity);
   return localbuf;
 }
 
@@ -65,7 +41,7 @@ const char *status_backlight() {
   fscanf(now_fp, "%i", &now);
 
   p = now*100/max;
-  sprintf(localbuf, (p > 50)? "\U0001F506%d%%" : "\U0001F505%d%%", p);
+  sprintf(localbuf, "LIGHT%d%%", p);
 
   fclose(max_fp);
   fclose(now_fp);
@@ -95,7 +71,7 @@ const char *status_audio() {
 
   snd_hctl_elem_read(elem, ctl);
   if (!snd_ctl_elem_value_get_boolean(ctl, 0)) {
-    sprintf(localbuf, "\U0001F507");
+    sprintf(localbuf, "MUTED");
     return localbuf;
   }
 
@@ -111,10 +87,7 @@ const char *status_audio() {
 
 
   snd_hctl_close(hctl);
-  if (volume > 50)
-    sprintf(localbuf, "\U0001F50A%d%%", volume);
-  else
-    sprintf(localbuf, "\U0001F509%d%%", volume);
+  sprintf(localbuf, "SOUND%d%%", volume);
   return localbuf;
 }
 
@@ -127,10 +100,12 @@ const char *status_wifi_ssid() {
   snprintf(wreq.ifr_name, sizeof(wreq.ifr_name),
            "%s", INTERFACE_WIRELESS);
 
-  if (sockfd == -1)
-    return "\u26C8";
+  if (sockfd == -1) {
+    sprintf(localbuf, "ETHERNET");
+    return localbuf;
+  }
 
-  offset = sprintf(localbuf, "\U0001F4F6");
+  offset = sprintf(localbuf, "WIRELESS:");
   wreq.u.essid.pointer = localbuf+offset;
   if (ioctl(sockfd, SIOCGIWESSID, &wreq) == -1) {
     close(sockfd);
@@ -140,7 +115,7 @@ const char *status_wifi_ssid() {
   close(sockfd);
 
   if (strcmp(localbuf+offset, "") == 0)
-    sprintf(localbuf+offset, "NOT CONNECTED");
+    sprintf(localbuf+offset, "IDLE");
   return localbuf;
 }
 
@@ -168,7 +143,7 @@ const char *status_disk_available() {
 
   if (statvfs("/", &fs) < 0)
     return NULL;
-  sprintf(localbuf, "\U0001F4BF+%ldGB",
+  sprintf(localbuf, "SDD+%ldGB",
           (fs.f_bsize/1024)*fs.f_bavail/1024/1024);
   return localbuf;
 }
