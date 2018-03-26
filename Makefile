@@ -2,21 +2,21 @@
 
 include config.mk
 
-all: status
+all: xroot-status
 
-status: status.o helpers.o
-status.o: status.c config.h
+xroot-status: xroot-status.o helpers.o
+xroot-status.o: xroot-status.c config.h
 helpers.o: helpers.c config.h
 
 config.h: config.def.h
 	cp $< $@
 
 clean:
-	$(RM) status *.o
+	$(RM) xroot-status *.o
 
 install: all
 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
-	cp -f status "$(DESTDIR)$(PREFIX)/bin/xroot-status"
+	cp -f xroot-status "$(DESTDIR)$(PREFIX)/bin/"
 	chmod 755 "$(DESTDIR)$(PREFIX)/bin/xroot-status"
 
 uninstall:
