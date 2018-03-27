@@ -143,7 +143,7 @@ const char *status_disk_available() {
 
   if (statvfs("/", &fs) < 0)
     return NULL;
-  sprintf(localbuf, "SDD+%ldGB",
+  sprintf(localbuf, "SSD+%ldGB",
           (fs.f_bsize/1024)*fs.f_bavail/1024/1024);
   return localbuf;
 }
